@@ -213,7 +213,7 @@ public class BroadcastConnectedStream<IN1, IN2> {
 	}
 
 	@Internal
-	private <OUT> SingleOutputStreamOperator<OUT> transform(
+	public <OUT> SingleOutputStreamOperator<OUT> transform(
 			final String functionName,
 			final TypeInformation<OUT> outTypeInfo,
 			final TwoInputStreamOperator<IN1, IN2, OUT> operator) {

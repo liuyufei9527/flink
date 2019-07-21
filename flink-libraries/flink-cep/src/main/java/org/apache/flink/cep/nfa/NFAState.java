@@ -38,6 +38,13 @@ public class NFAState {
 
 	private Queue<ComputationState> completedMatches;
 
+	/** version of linked nfa*/
+	private long version;
+
+	public long getVersion() {
+		return version;
+	}
+
 	/**
 	 * Flag indicating whether the matching status of the state machine has changed.
 	 */
@@ -49,18 +56,28 @@ public class NFAState {
 			.thenComparingInt(c ->
 				c.getStartEventID() != null ? c.getStartEventID().getId() : Integer.MAX_VALUE);
 
+	public NFAState() {
+		System.out.println(1);
+	}
+
 	public NFAState(Iterable<ComputationState> states) {
+		this(states, 1L);
+	}
+
+	public NFAState(Iterable<ComputationState> states, long version) {
 		this.partialMatches = new PriorityQueue<>(COMPUTATION_STATE_COMPARATOR);
 		for (ComputationState startingState : states) {
 			partialMatches.add(startingState);
 		}
 
 		this.completedMatches = new PriorityQueue<>(COMPUTATION_STATE_COMPARATOR);
+		this.version = version;
 	}
 
-	public NFAState(Queue<ComputationState> partialMatches, Queue<ComputationState> completedMatches) {
+	public NFAState(Queue<ComputationState> partialMatches, Queue<ComputationState> completedMatches, long version) {
 		this.partialMatches = partialMatches;
 		this.completedMatches = completedMatches;
+		this.version = version;
 	}
 
 	/**

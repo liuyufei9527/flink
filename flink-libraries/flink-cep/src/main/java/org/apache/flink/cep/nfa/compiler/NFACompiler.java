@@ -71,11 +71,12 @@ public class NFACompiler {
 		boolean timeoutHandling) {
 		if (pattern == null) {
 			// return a factory for empty NFAs
-			return new NFAFactoryImpl<>(0, Collections.<State<T>>emptyList(), timeoutHandling);
+			return new NFAFactoryImpl<>(0, Collections.<State<T>>emptyList(), timeoutHandling, 1L);
 		} else {
 			final NFAFactoryCompiler<T> nfaFactoryCompiler = new NFAFactoryCompiler<>(pattern);
 			nfaFactoryCompiler.compileFactory();
-			return new NFAFactoryImpl<>(nfaFactoryCompiler.getWindowTime(), nfaFactoryCompiler.getStates(), timeoutHandling);
+			long version = pattern.getVersion() == 0 ? 1L : pattern.getVersion();
+			return new NFAFactoryImpl<>(nfaFactoryCompiler.getWindowTime(), nfaFactoryCompiler.getStates(), timeoutHandling, version);
 		}
 	}
 
@@ -925,20 +926,23 @@ public class NFACompiler {
 		private final long windowTime;
 		private final Collection<State<T>> states;
 		private final boolean timeoutHandling;
+		private final long version;
 
 		private NFAFactoryImpl(
 				long windowTime,
 				Collection<State<T>> states,
-				boolean timeoutHandling) {
+				boolean timeoutHandling,
+				long version) {
 
 			this.windowTime = windowTime;
 			this.states = states;
 			this.timeoutHandling = timeoutHandling;
+			this.version = version;
 		}
 
 		@Override
 		public NFA<T> createNFA() {
-			return new NFA<>(states, windowTime, timeoutHandling);
+			return new NFA<>(states, windowTime, timeoutHandling, version);
 		}
 	}
 }

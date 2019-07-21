@@ -104,13 +104,17 @@ public class NFA<T> {
 	 */
 	private final boolean handleTimeout;
 
+	private final long version;
+
 	public NFA(
 			final Collection<State<T>> validStates,
 			final long windowTime,
-			final boolean handleTimeout) {
+			final boolean handleTimeout,
+			final long version) {
 		this.windowTime = windowTime;
 		this.handleTimeout = handleTimeout;
 		this.states = loadStates(validStates);
+		this.version = version;
 	}
 
 	private Map<String, State<T>> loadStates(final Collection<State<T>> validStates) {
@@ -126,6 +130,10 @@ public class NFA<T> {
 		return states.values();
 	}
 
+	public long getVersion() {
+		return version;
+	}
+
 	public NFAState createInitialNFAState() {
 		Queue<ComputationState> startingStates = new LinkedList<>();
 		for (State<T> state : states.values()) {
@@ -133,7 +141,7 @@ public class NFA<T> {
 				startingStates.add(ComputationState.createStartState(state.getName()));
 			}
 		}
-		return new NFAState(startingStates);
+		return new NFAState(startingStates, version);
 	}
 
 	private State<T> getState(ComputationState state) {

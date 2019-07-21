@@ -32,6 +32,8 @@ import org.apache.flink.cep.pattern.conditions.SubtypeCondition;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Preconditions;
 
+import java.io.Serializable;
+
 /**
  * Base class for a pattern definition.
  *
@@ -47,7 +49,7 @@ import org.apache.flink.util.Preconditions;
  * @param <T> Base type of the elements appearing in the pattern
  * @param <F> Subtype of T to which the current pattern operator is constrained
  */
-public class Pattern<T, F extends T> {
+public class Pattern<T, F extends T> implements Serializable {
 
 	/** Name of the pattern. */
 	private final String name;
@@ -73,7 +75,12 @@ public class Pattern<T, F extends T> {
 	 */
 	private Times times;
 
+
+
 	private final AfterMatchSkipStrategy afterMatchSkipStrategy;
+
+	/** version of a pattern to support dynamic pattern*/
+	private long version;
 
 	protected Pattern(
 		final String name,
@@ -116,6 +123,14 @@ public class Pattern<T, F extends T> {
 
 	public IterativeCondition<F> getUntilCondition() {
 		return untilCondition;
+	}
+
+	public long getVersion() {
+		return version;
+	}
+
+	public void setVersion(long version) {
+		this.version = version;
 	}
 
 	/**

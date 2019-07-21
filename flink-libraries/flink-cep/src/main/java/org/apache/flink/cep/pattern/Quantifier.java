@@ -20,6 +20,7 @@ package org.apache.flink.cep.pattern;
 
 import org.apache.flink.util.Preconditions;
 
+import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.Objects;
 
@@ -35,7 +36,7 @@ import java.util.Objects;
  * <p>Each {@link Pattern} can be optional and have a {@link ConsumingStrategy}. Looping and Times also hava an
  * additional inner consuming strategy that is applied between accepted events in the pattern.
  */
-public class Quantifier {
+public class Quantifier implements Serializable {
 
 	private final EnumSet<QuantifierProperty> properties;
 

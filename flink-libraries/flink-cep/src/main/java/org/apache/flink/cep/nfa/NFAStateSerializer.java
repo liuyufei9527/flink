@@ -111,13 +111,15 @@ public class NFAStateSerializer extends TypeSerializerSingleton<NFAState> {
 	public void serialize(NFAState record, DataOutputView target) throws IOException {
 		serializeComputationStates(record.getPartialMatches(), target);
 		serializeComputationStates(record.getCompletedMatches(), target);
+		target.writeLong(record.getVersion());
 	}
 
 	@Override
 	public NFAState deserialize(DataInputView source) throws IOException {
 		PriorityQueue<ComputationState> partialMatches = deserializeComputationStates(source);
 		PriorityQueue<ComputationState> completedMatches = deserializeComputationStates(source);
-		return new NFAState(partialMatches, completedMatches);
+		long version = source.readLong();
+		return new NFAState(partialMatches, completedMatches, version);
 	}
 
 	@Override

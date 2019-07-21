@@ -18,6 +18,7 @@
 
 package org.apache.flink.cep;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
@@ -55,4 +56,14 @@ public class CEP {
 		final PatternStream<T> stream = new PatternStream<>(input, pattern);
 		return stream.withComparator(comparator);
 	}
+
+	public static <T> DynamicPatternStream<T> dynamicPattern(DataStream<T> input, DataStream<Tuple2<String, Pattern<T, ?>>> patternInput) {
+		return new DynamicPatternStream<>(input, patternInput);
+	}
+
+	public static <T> DynamicPatternStream<T> dynamicPattern(DataStream<T> input, DataStream<Tuple2<String, Pattern<T, ?>>> patternInput, EventComparator<T> comparator) {
+		final DynamicPatternStream<T> patternStream = new DynamicPatternStream<>(input, patternInput);
+		return patternStream.withComparator(comparator);
+	}
+
 }

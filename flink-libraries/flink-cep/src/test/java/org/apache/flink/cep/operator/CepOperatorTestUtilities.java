@@ -98,6 +98,54 @@ public class CepOperatorTestUtilities {
 			outputTag);
 	}
 
+
+
+	/*public static <T> OneInputStreamOperatorTestHarness<Event, T> getDymamicCepTestHarness(
+		CepOperator<Event, Integer, T> cepOperator) throws Exception {
+		KeySelector<Event, Integer> keySelector = new TestKeySelector();
+
+		return new KeyedOneInputStreamOperatorTestHarness<>(
+			cepOperator,
+			keySelector,
+			BasicTypeInfo.INT_TYPE_INFO);
+	}*/
+
+	public static <K> DynamicCepOperator<Event, K, Map<String, List<Event>>> getDynamicKeyedCepOpearator(
+		boolean isProcessingTime) {
+
+		return getDynamicKeyedCepOpearator(isProcessingTime, null);
+	}
+
+	public static <K> DynamicCepOperator<Event, K, Map<String, List<Event>>> getDynamicKeyedCepOpearator(
+		boolean isProcessingTime,
+		EventComparator<Event> comparator) {
+
+		return getDynamicKeyedCepOpearator(isProcessingTime, comparator, null);
+	}
+
+	public static <K> DynamicCepOperator<Event, K, Map<String, List<Event>>> getDynamicKeyedCepOpearator(
+		boolean isProcessingTime,
+		EventComparator<Event> comparator,
+		OutputTag<Event> outputTag) {
+
+		return new DynamicCepOperator<>(
+			Event.createTypeSerializer(),
+			isProcessingTime,
+			comparator,
+			new PatternProcessFunction<Event, Map<String, List<Event>>>() {
+				private static final long serialVersionUID = -7143807777582726991L;
+
+				@Override
+				public void processMatch(
+					Map<String, List<Event>> match,
+					Context ctx,
+					Collector<Map<String, List<Event>>> out) throws Exception {
+					out.collect(match);
+				}
+			},
+			outputTag, false);
+	}
+
 	private CepOperatorTestUtilities() {
 	}
 }
