@@ -1335,7 +1335,16 @@ full_outer_result = left.full_outer_join(right, "a = d").select("a, b, e")
         <span class="label label-primary">批处理</span> <span class="label label-primary">流处理</span>
       </td>
     	<td>
-        <p>Python API暂不支持。</p>
+        <p>将一张表与一个表函数的执行结果执行内连接操作。左表的每一行都会进行一次表函数调用，调用将会返回0个，1个或多个结果，再与这些结果执行连接操作。如果一行数据对应的表函数调用返回了一个空的结果集，则这行数据会被丢弃。
+        </p>
+{% highlight python %}
+# register Java User-Defined Table Function
+table_env.register_java_function("split", "com.my.udf.MySplitUDTF")
+
+# join
+orders = table_env.scan("Orders")
+result = orders.join_lateral("split(c).as(s, t, v)").select("a, b, s, t, v")
+{% endhighlight %}
       </td>
     </tr>
     <tr>
@@ -1344,7 +1353,16 @@ full_outer_result = left.full_outer_join(right, "a = d").select("a, b, e")
         <span class="label label-primary">批处理</span> <span class="label label-primary">流处理</span>
       </td>
       <td>
-        <p>Python API暂不支持。</p>
+        <p>将一张表与一个表函数的执行结果执行左连接操作。左表的每一行都会进行一次表函数调用，调用将会返回0个，1个或多个结果，再与这些结果执行连接操作。如果一行数据对应的表函数调用返回了一个空的结果集，这行数据依然会被保留，对应的右表数值用null(python为None)填充。</p>
+        <p><b>注意：</b>目前，表函数的左连接操作的连接条件(join predicate)只能为空或者为"true"常量。</p>
+{% highlight python %}
+# register Java User-Defined Table Function
+table_env.register_java_function("split", "com.my.udf.MySplitUDTF")
+
+# join
+orders = table_env.scan("Orders")
+result = orders.left_outer_join_lateral("split(c).as(s, t, v)").select("a, b, s, t, v")
+{% endhighlight %}
       </td>
     </tr>
     <tr>
@@ -2642,6 +2660,26 @@ Table table = input
 
     <tr>
       <td>
+        <strong>Group Window Aggregate</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Groups and aggregates a table on a <a href="#group-windows">group window</a> and possibly one or more grouping keys. You have to close the "aggregate" with a select statement. And the select statement does not support "*" or aggregate functions.</p>
+{% highlight java %}
+AggregateFunction myAggFunc = new MyMinMax();
+tableEnv.registerFunction("myAggFunc", myAggFunc);
+
+Table table = input
+    .window(Tumble.over("5.minutes").on("rowtime").as("w")) // define window
+    .groupBy("key, w") // group by key and window
+    .aggregate("myAggFunc(a) as (x, y)")
+    .select("key, x, y, w.start, w.end"); // access window properties and aggregate results
+{% endhighlight %}
+      </td>
+    </tr>
+
+    <tr>
+      <td>
         <strong>FlatAggregate</strong><br>
         <span class="label label-primary">Streaming</span><br>
         <span class="label label-info">Result Updating</span>
@@ -2836,11 +2874,30 @@ class MyMinMax extends AggregateFunction[Row, MyMinMaxAcc] {
   }
 }
 
-val myAggFunc: AggregateFunction = new MyMinMax
+val myAggFunc = new MyMinMax
 val table = input
   .groupBy('key)
   .aggregate(myAggFunc('a) as ('x, 'y))
   .select('key, 'x, 'y)
+{% endhighlight %}
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>Group Window Aggregate</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Groups and aggregates a table on a <a href="#group-windows">group window</a> and possibly one or more grouping keys. You have to close the "aggregate" with a select statement. And the select statement does not support "*" or aggregate functions.</p>
+{% highlight scala %}
+val myAggFunc = new MyMinMax
+val table = input
+    .window(Tumble over 5.minutes on 'rowtime as 'w) // define window
+    .groupBy('key, 'w) // group by key and window
+    .aggregate(myAggFunc('a) as ('x, 'y))
+    .select('key, 'x, 'y, 'w.start, 'w.end) // access window properties and aggregate results
+
 {% endhighlight %}
       </td>
     </tr>
@@ -2948,29 +3005,7 @@ val result = orders
 Data Types
 ----------
 
-The Table API is built on top of Flink's DataSet and DataStream APIs. Internally, it also uses Flink's `TypeInformation` to define data types. Fully supported types are listed in `org.apache.flink.table.api.Types`. The following table summarizes the relation between Table API types, SQL types, and the resulting Java class.
-
-| Table API              | SQL                         | Java type              |
-| :--------------------- | :-------------------------- | :--------------------- |
-| `Types.STRING`         | `VARCHAR`                   | `java.lang.String`     |
-| `Types.BOOLEAN`        | `BOOLEAN`                   | `java.lang.Boolean`    |
-| `Types.BYTE`           | `TINYINT`                   | `java.lang.Byte`       |
-| `Types.SHORT`          | `SMALLINT`                  | `java.lang.Short`      |
-| `Types.INT`            | `INTEGER, INT`              | `java.lang.Integer`    |
-| `Types.LONG`           | `BIGINT`                    | `java.lang.Long`       |
-| `Types.FLOAT`          | `REAL, FLOAT`               | `java.lang.Float`      |
-| `Types.DOUBLE`         | `DOUBLE`                    | `java.lang.Double`     |
-| `Types.DECIMAL`        | `DECIMAL`                   | `java.math.BigDecimal` |
-| `Types.SQL_DATE`       | `DATE`                      | `java.sql.Date`        |
-| `Types.SQL_TIME`       | `TIME`                      | `java.sql.Time`        |
-| `Types.SQL_TIMESTAMP`  | `TIMESTAMP(3)`              | `java.sql.Timestamp`   |
-| `Types.INTERVAL_MONTHS`| `INTERVAL YEAR TO MONTH`    | `java.lang.Integer`    |
-| `Types.INTERVAL_MILLIS`| `INTERVAL DAY TO SECOND(3)` | `java.lang.Long`       |
-| `Types.PRIMITIVE_ARRAY`| `ARRAY`                     | e.g. `int[]`           |
-| `Types.OBJECT_ARRAY`   | `ARRAY`                     | e.g. `java.lang.Byte[]`|
-| `Types.MAP`            | `MAP`                       | `java.util.HashMap`    |
-| `Types.MULTISET`       | `MULTISET`                  | e.g. `java.util.HashMap<String, Integer>` for a multiset of `String` |
-| `Types.ROW`            | `ROW`                       | `org.apache.flink.types.Row` |
+Please see the dedicated page about [data types](types.html).
 
 Generic types and (nested) composite types (e.g., POJOs, tuples, rows, Scala case classes) can be fields of a row as well.
 

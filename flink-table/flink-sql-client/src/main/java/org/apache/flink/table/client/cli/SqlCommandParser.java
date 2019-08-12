@@ -103,8 +103,8 @@ public final class SqlCommandParser {
 			"USE\\s+CATALOG\\s+(.*)",
 			SINGLE_OPERAND),
 
-		USE_DATABASE(
-			"USE\\s+DATABASE\\s+(.*)",
+		USE(
+			"USE\\s+(?!CATALOG)(.*)",
 			SINGLE_OPERAND),
 
 		DESCRIBE(
