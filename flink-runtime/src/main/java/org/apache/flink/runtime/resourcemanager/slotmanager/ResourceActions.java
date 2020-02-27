@@ -56,4 +56,6 @@ public interface ResourceActions {
 	 * @param cause of the allocation failure
 	 */
 	void notifyAllocationFailure(JobID jobId, AllocationID allocationId, Exception cause);
+
+	int slotsNumberOfAllWorkers();
 }

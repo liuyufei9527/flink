@@ -495,6 +495,11 @@ public class MesosResourceManager extends ResourceManager<RegisteredMesosWorkerN
 		return true;
 	}
 
+	@Override
+	protected int slotsNumberOfAllWorkers() {
+		return (workersInNew.size() + workersInLaunch.size()) * slotsPerWorker.size();
+	}
+
 	/**
 	 * Callback when a worker was started.
 	 *

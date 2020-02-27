@@ -29,6 +29,7 @@ import org.apache.flink.runtime.resourcemanager.exceptions.ResourceManagerExcept
 import org.apache.flink.runtime.resourcemanager.registration.TaskExecutorConnection;
 import org.apache.flink.runtime.taskexecutor.SlotReport;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
@@ -125,6 +126,13 @@ public interface SlotManager extends AutoCloseable {
 	void freeSlot(SlotID slotId, AllocationID allocationId);
 
 	void setFailUnfulfillableRequest(boolean failUnfulfillableRequest);
+
+	CompletableFuture<Void> minimumSlotsInitialComplete();
+
+	/**
+	 *
+	 */
+	void initMinimumSlots();
 
 	@VisibleForTesting
 	void unregisterTaskManagersAndReleaseResources();

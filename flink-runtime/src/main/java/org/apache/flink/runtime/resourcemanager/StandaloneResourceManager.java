@@ -96,6 +96,11 @@ public class StandaloneResourceManager extends ResourceManager<ResourceID> {
 	}
 
 	@Override
+	protected int slotsNumberOfAllWorkers() {
+		return 0;
+	}
+
+	@Override
 	protected ResourceID workerStarted(ResourceID resourceID) {
 		return resourceID;
 	}

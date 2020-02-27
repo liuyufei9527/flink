@@ -62,4 +62,22 @@ public class ClusterOptions {
 				.text("Enable the slot spread out allocation strategy. This strategy tries to spread out " +
 					"the slots evenly across all available %s.", code("TaskExecutors"))
 				.build());
+
+	public static final ConfigOption<Integer> MINIMUM_NUM_TOTAL_SLOTS = ConfigOptions
+		.key("cluster.number-of-slots.min")
+		.intType()
+		.defaultValue(0)
+		.withDescription("The minimum slots of cluster, only work with ActiveResourceManager (Yarn, k8s, Mesos).");
+
+	public static final ConfigOption<Boolean> WAIT_FOR_MINIMUM_SLOTS = ConfigOptions
+		.key("cluster.wait-for-minimum-slots")
+		.booleanType()
+		.defaultValue(true)
+		.withDescription("Block job schedule until minimum number of slots has registered.");
+
+	public static final ConfigOption<Integer> MAXIMUM_NUM_TOTAL_SLOTS = ConfigOptions
+		.key("cluster.number-of-slots.max")
+		.intType()
+		.defaultValue(-1)
+		.withDescription("The maximum slots of cluster, cluster will reject slot request if exceed max num.");
 }

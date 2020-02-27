@@ -125,13 +125,18 @@ public class SlotManagerImpl implements SlotManager {
 	 * */
 	private boolean failUnfulfillableRequest = true;
 
+	private final SlotBoundariesAction slotBoundariesAction;
+
 	public SlotManagerImpl(
 			SlotMatchingStrategy slotMatchingStrategy,
 			ScheduledExecutor scheduledExecutor,
 			Time taskManagerRequestTimeout,
 			Time slotRequestTimeout,
 			Time taskManagerTimeout,
-			boolean waitResultConsumedBeforeRelease) {
+			boolean waitResultConsumedBeforeRelease,
+			int minimumNumSlots,
+			int maximumNumSlots,
+			boolean waitForMinimumSlots) {
 
 		this.slotMatchingStrategy = Preconditions.checkNotNull(slotMatchingStrategy);
 		this.scheduledExecutor = Preconditions.checkNotNull(scheduledExecutor);
@@ -139,6 +144,7 @@ public class SlotManagerImpl implements SlotManager {
 		this.slotRequestTimeout = Preconditions.checkNotNull(slotRequestTimeout);
 		this.taskManagerTimeout = Preconditions.checkNotNull(taskManagerTimeout);
 		this.waitResultConsumedBeforeRelease = waitResultConsumedBeforeRelease;
+		this.slotBoundariesAction = new SlotBoundariesAction(minimumNumSlots, maximumNumSlots, waitForMinimumSlots);
 
 		slots = new HashMap<>(16);
 		freeSlots = new LinkedHashMap<>(16);
@@ -498,6 +504,16 @@ public class SlotManagerImpl implements SlotManager {
 			}
 		}
 		this.failUnfulfillableRequest = failUnfulfillableRequest;
+	}
+
+	@Override
+	public CompletableFuture<Void> minimumSlotsInitialComplete() {
+		return slotBoundariesAction.minimumSlotsInitialFuture;
+	}
+
+	@Override
+	public void initMinimumSlots() {
+		slotBoundariesAction.initMinimumSlots();
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -918,6 +934,8 @@ public class SlotManagerImpl implements SlotManager {
 		} else {
 			freeSlots.put(freeSlot.getSlotId(), freeSlot);
 		}
+
+		slotBoundariesAction.checkInitialComplete();
 	}
 
 	/**
@@ -1074,12 +1092,16 @@ public class SlotManagerImpl implements SlotManager {
 			long currentTime = System.currentTimeMillis();
 
 			ArrayList<TaskManagerRegistration> timedOutTaskManagers = new ArrayList<>(taskManagerRegistrations.size());
-
+			int slotsNumber = getNumberRegisteredSlots();
 			// first retrieve the timed out TaskManagers
 			for (TaskManagerRegistration taskManagerRegistration : taskManagerRegistrations.values()) {
 				if (currentTime - taskManagerRegistration.getIdleSince() >= taskManagerTimeout.toMilliseconds()) {
 					// we collect the instance ids first in order to avoid concurrent modifications by the
 					// ResourceActions.releaseResource call
+					slotsNumber = slotsNumber - taskManagerRegistration.getNumberRegisteredSlots();
+					if (slotsNumber <= slotBoundariesAction.minimumNumSlots) {
+						break;
+					}
 					timedOutTaskManagers.add(taskManagerRegistration);
 				}
 			}
@@ -1151,6 +1173,7 @@ public class SlotManagerImpl implements SlotManager {
 		Preconditions.checkNotNull(taskManagerRegistration);
 
 		removeSlots(taskManagerRegistration.getSlots(), cause);
+		slotBoundariesAction.checkMinimumSlotsIfTaskManagerUnregister();
 	}
 
 	private boolean checkDuplicateRequest(AllocationID allocationId) {
@@ -1201,6 +1224,74 @@ public class SlotManagerImpl implements SlotManager {
 			final FlinkException cause = new FlinkException("Triggering of SlotManager#unregisterTaskManagersAndReleaseResources.");
 			internalUnregisterTaskManager(taskManagerRegistration, cause);
 			resourceActions.releaseResource(taskManagerRegistration.getInstanceId(), cause);
+		}
+	}
+
+	// ------------------------------------------------------------------------
+	//  Static utility classes
+	// ------------------------------------------------------------------------
+
+	private class SlotBoundariesAction {
+		private final int minimumNumSlots;
+		private final int maximumNumSlots;
+		private boolean waitForMinimumSlots;
+		private CompletableFuture<Void> minimumSlotsInitialFuture = new CompletableFuture<>();
+
+		private SlotBoundariesAction(int minimumNumSlots, int maximumNumSlots, boolean waitForMinimumSlots) {
+			this.minimumNumSlots = minimumNumSlots;
+			this.maximumNumSlots = maximumNumSlots;
+			this.waitForMinimumSlots = waitForMinimumSlots;
+			if (minimumNumSlots <= 0 || !waitForMinimumSlots) {
+				minimumSlotsInitialFuture.complete(null);
+			}
+		}
+
+		/**
+		 *
+		 */
+		private void initMinimumSlots() {
+			if (minimumNumSlots <= 0) {
+				return;
+			}
+
+			int recoveredSlots = resourceActions.slotsNumberOfAllWorkers();
+			int slotsInsufficient = minimumNumSlots - recoveredSlots - pendingSlots.size();
+			try {
+				while (slotsInsufficient > 0) {
+					Collection<ResourceProfile> resourcePerExecutor = resourceActions.allocateResource(ResourceProfile.UNKNOWN);
+					if (resourcePerExecutor.isEmpty()) {
+						LOG.info("Can't allocated minimum number of slots: can't allocated resource in Standalone cluster.");
+						return;
+					}
+					for (ResourceProfile resourceProfile : resourcePerExecutor) {
+						final PendingTaskManagerSlot additionalPendingTaskManagerSlot = new PendingTaskManagerSlot(resourceProfile);
+						pendingSlots.put(additionalPendingTaskManagerSlot.getTaskManagerSlotId(), additionalPendingTaskManagerSlot);
+					}
+					slotsInsufficient = slotsInsufficient - resourcePerExecutor.size();
+				}
+			} catch (ResourceManagerException e) {
+				LOG.warn("Can't allocated minimum number of slots: " + e.getMessage());
+			}
+		}
+
+		private void checkMinimumSlotsIfTaskManagerUnregister() {
+			try {
+				if (slots.size() < minimumNumSlots) {
+					Collection<ResourceProfile> resourcePerExecutor = resourceActions.allocateResource(ResourceProfile.UNKNOWN);
+					for (ResourceProfile resourceProfile : resourcePerExecutor) {
+						final PendingTaskManagerSlot additionalPendingTaskManagerSlot = new PendingTaskManagerSlot(resourceProfile);
+						pendingSlots.put(additionalPendingTaskManagerSlot.getTaskManagerSlotId(), additionalPendingTaskManagerSlot);
+					}
+				}
+			} catch (ResourceManagerException e) {
+				LOG.error("Can't allocated resource when TaskManager unregister: " + e.getMessage());
+			}
+		}
+
+		private void checkInitialComplete() {
+			if (freeSlots.size() >= minimumNumSlots) {
+				minimumSlotsInitialFuture.complete(null);
+			}
 		}
 	}
 }

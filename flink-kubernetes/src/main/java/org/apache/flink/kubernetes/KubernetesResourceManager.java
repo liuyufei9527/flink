@@ -193,6 +193,11 @@ public class KubernetesResourceManager extends ActiveResourceManager<KubernetesW
 	}
 
 	@Override
+	protected int slotsNumberOfAllWorkers() {
+		return workerNodes.size() * numSlotsPerTaskManager;
+	}
+
+	@Override
 	public void onAdded(List<KubernetesPod> pods) {
 		runAsync(() -> {
 			for (KubernetesPod pod : pods) {

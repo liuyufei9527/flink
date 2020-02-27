@@ -336,7 +336,24 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 			getMainThreadExecutor());
 
 		// handle exceptions which might have occurred in one of the futures inputs of combine
-		return registrationResponseFuture.handleAsync(
+
+		return slotManager.minimumSlotsInitialComplete()
+			.thenCompose(ignore -> registrationResponseFuture.handleAsync(
+				(RegistrationResponse registrationResponse, Throwable throwable) -> {
+					if (throwable != null) {
+						if (log.isDebugEnabled()) {
+							log.debug("Registration of job manager {}@{} failed.", jobMasterId, jobManagerAddress, throwable);
+						} else {
+							log.info("Registration of job manager {}@{} failed.", jobMasterId, jobManagerAddress);
+						}
+
+						return new RegistrationResponse.Decline(throwable.getMessage());
+					} else {
+						return registrationResponse;
+					}
+				},
+				getRpcService().getExecutor()));
+		/*return registrationResponseFuture.handleAsync(
 			(RegistrationResponse registrationResponse, Throwable throwable) -> {
 				if (throwable != null) {
 					if (log.isDebugEnabled()) {
@@ -350,7 +367,7 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 					return registrationResponse;
 				}
 			},
-			getRpcService().getExecutor());
+			getRpcService().getExecutor());*/
 	}
 
 	@Override
@@ -915,7 +932,10 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 
 			startServicesOnLeadership();
 
-			return prepareLeadershipAsync().thenApply(ignored -> true);
+			return prepareLeadershipAsync().thenApply(ignored -> {
+				slotManager.initMinimumSlots();
+				return true;
+			});
 		} else {
 			return CompletableFuture.completedFuture(false);
 		}
@@ -1048,6 +1068,12 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 	public abstract boolean stopWorker(WorkerType worker);
 
 	/**
+	 * Get recovered slots number from last att
+	 * @return
+	 */
+	protected abstract int slotsNumberOfAllWorkers();
+
+	/**
 	 * Set {@link SlotManager} whether to fail unfulfillable slot requests.
 	 * @param failUnfulfillableRequest whether to fail unfulfillable requests
 	 */
@@ -1082,6 +1108,12 @@ public abstract class ResourceManager<WorkerType extends ResourceIDRetrievable>
 			if (jobManagerRegistration != null) {
 				jobManagerRegistration.getJobManagerGateway().notifyAllocationFailure(allocationId, cause);
 			}
+		}
+
+		@Override
+		public int slotsNumberOfAllWorkers() {
+			validateRunsInMainThread();
+			return ResourceManager.this.slotsNumberOfAllWorkers();
 		}
 	}
 

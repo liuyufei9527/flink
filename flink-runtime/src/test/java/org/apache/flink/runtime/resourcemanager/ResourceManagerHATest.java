@@ -69,6 +69,9 @@ public class ResourceManagerHATest extends TestLogger {
 				TestingUtils.infiniteTime(),
 				TestingUtils.infiniteTime(),
 				true,
+				false,
+				0,
+				-1,
 				false));
 		ResourceManagerRuntimeServices resourceManagerRuntimeServices = ResourceManagerRuntimeServices.fromConfiguration(
 			resourceManagerRuntimeServicesConfiguration,

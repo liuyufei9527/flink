@@ -26,6 +26,7 @@ import org.apache.flink.runtime.resourcemanager.SlotRequest;
 import org.apache.flink.runtime.resourcemanager.registration.TaskExecutorConnection;
 import org.apache.flink.runtime.taskexecutor.SlotReport;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
@@ -113,6 +114,16 @@ public class TestingSlotManager implements SlotManager {
 	@Override
 	public void setFailUnfulfillableRequest(boolean failUnfulfillableRequest) {
 		setFailUnfulfillableRequestConsumer.accept(failUnfulfillableRequest);
+	}
+
+	@Override
+	public CompletableFuture<Void> minimumSlotsInitialComplete() {
+		return CompletableFuture.completedFuture(null);
+	}
+
+	@Override
+	public void initMinimumSlots() {
+
 	}
 
 	@Override

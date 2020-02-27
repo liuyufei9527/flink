@@ -43,19 +43,28 @@ public class SlotManagerConfiguration {
 	private final Time taskManagerTimeout;
 	private final boolean waitResultConsumedBeforeRelease;
 	private final boolean evenlySpreadOutSlots;
+	private final int minimumSlotsNumber;
+	private final int maximumSlotsNumber;
+	private final boolean waitForMinimumSlots;
 
 	public SlotManagerConfiguration(
 			Time taskManagerRequestTimeout,
 			Time slotRequestTimeout,
 			Time taskManagerTimeout,
 			boolean waitResultConsumedBeforeRelease,
-			boolean evenlySpreadOutSlots) {
+			boolean evenlySpreadOutSlots,
+			int minimumSlotsNumber,
+			int maximumSlotsNumber,
+			boolean waitForMinimumSlots) {
 
 		this.taskManagerRequestTimeout = Preconditions.checkNotNull(taskManagerRequestTimeout);
 		this.slotRequestTimeout = Preconditions.checkNotNull(slotRequestTimeout);
 		this.taskManagerTimeout = Preconditions.checkNotNull(taskManagerTimeout);
 		this.waitResultConsumedBeforeRelease = waitResultConsumedBeforeRelease;
 		this.evenlySpreadOutSlots = evenlySpreadOutSlots;
+		this.minimumSlotsNumber = minimumSlotsNumber;
+		this.maximumSlotsNumber = maximumSlotsNumber;
+		this.waitForMinimumSlots = waitForMinimumSlots;
 	}
 
 	public Time getTaskManagerRequestTimeout() {
@@ -78,6 +87,18 @@ public class SlotManagerConfiguration {
 		return evenlySpreadOutSlots;
 	}
 
+	public int getMinimumSlotsNumber() {
+		return minimumSlotsNumber;
+	}
+
+	public int getMaximumSlotsNumber() {
+		return maximumSlotsNumber;
+	}
+
+	public boolean waitForMinimumSlots() {
+		return waitForMinimumSlots;
+	}
+
 	public static SlotManagerConfiguration fromConfiguration(Configuration configuration) throws ConfigurationException {
 		final Time rpcTimeout;
 		try {
@@ -95,13 +116,19 @@ public class SlotManagerConfiguration {
 			configuration.getBoolean(ResourceManagerOptions.TASK_MANAGER_RELEASE_WHEN_RESULT_CONSUMED);
 
 		boolean evenlySpreadOutSlots = configuration.getBoolean(ClusterOptions.EVENLY_SPREAD_OUT_SLOTS_STRATEGY);
+		int minimumSlots = configuration.getInteger(ClusterOptions.MINIMUM_NUM_TOTAL_SLOTS);
+		int maximumSlots = configuration.getInteger(ClusterOptions.MAXIMUM_NUM_TOTAL_SLOTS);
+		boolean waitForMinimumSlots = configuration.getBoolean(ClusterOptions.WAIT_FOR_MINIMUM_SLOTS);
 
 		return new SlotManagerConfiguration(
 			rpcTimeout,
 			slotRequestTimeout,
 			taskManagerTimeout,
 			waitResultConsumedBeforeRelease,
-			evenlySpreadOutSlots);
+			evenlySpreadOutSlots,
+			minimumSlots,
+			maximumSlots,
+			waitForMinimumSlots);
 	}
 
 	private static Time getSlotRequestTimeout(final Configuration configuration) {

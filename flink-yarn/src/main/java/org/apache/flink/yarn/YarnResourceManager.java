@@ -312,6 +312,11 @@ public class YarnResourceManager extends ActiveResourceManager<YarnWorkerNode>
 	}
 
 	@Override
+	protected int slotsNumberOfAllWorkers() {
+		return workerNodeMap.size() * numSlotsPerTaskManager;
+	}
+
+	@Override
 	protected YarnWorkerNode workerStarted(ResourceID resourceID) {
 		return workerNodeMap.get(resourceID);
 	}

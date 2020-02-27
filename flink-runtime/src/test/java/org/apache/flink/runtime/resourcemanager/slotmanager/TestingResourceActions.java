@@ -69,4 +69,9 @@ public class TestingResourceActions implements ResourceActions {
 	public void notifyAllocationFailure(JobID jobId, AllocationID allocationId, Exception cause) {
 		notifyAllocationFailureConsumer.accept(Tuple3.of(jobId, allocationId, cause));
 	}
+
+	@Override
+	public int slotsNumberOfAllWorkers() {
+		return 0;
+	}
 }

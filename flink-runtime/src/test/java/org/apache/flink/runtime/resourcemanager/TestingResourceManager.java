@@ -88,4 +88,9 @@ public class TestingResourceManager extends ResourceManager<ResourceID> {
 		// cannot stop workers
 		return false;
 	}
+
+	@Override
+	protected int slotsNumberOfAllWorkers() {
+		return Integer.MIN_VALUE;
+	}
 }

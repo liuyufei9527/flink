@@ -30,6 +30,9 @@ public class SlotManagerBuilder {
 	private Time slotRequestTimeout;
 	private Time taskManagerTimeout;
 	private boolean waitResultConsumedBeforeRelease;
+	private int minimumNumSlots;
+	private int maximumNumSlots;
+	private boolean waitForMinimumSlots;
 
 	private SlotManagerBuilder() {
 		this.slotMatchingStrategy = AnyMatchingSlotMatchingStrategy.INSTANCE;
@@ -38,6 +41,9 @@ public class SlotManagerBuilder {
 		this.slotRequestTimeout = TestingUtils.infiniteTime();
 		this.taskManagerTimeout = TestingUtils.infiniteTime();
 		this.waitResultConsumedBeforeRelease = true;
+		this.minimumNumSlots = 0;
+		this.maximumNumSlots = -1;
+		this.waitForMinimumSlots = false;
 	}
 
 	public static SlotManagerBuilder newBuilder() {
@@ -74,6 +80,21 @@ public class SlotManagerBuilder {
 		return this;
 	}
 
+	public SlotManagerBuilder setMinimumNumSlots(int minimumNumSlots) {
+		this.minimumNumSlots = minimumNumSlots;
+		return this;
+	}
+
+	public SlotManagerBuilder setMaximumNumSlots(int maximumNumSlots) {
+		this.maximumNumSlots = maximumNumSlots;
+		return this;
+	}
+
+	public SlotManagerBuilder setWaitForMinimumSlots(boolean waitForMinimumSlots) {
+		this.waitForMinimumSlots = waitForMinimumSlots;
+		return this;
+	}
+
 	public SlotManagerImpl build() {
 		return new SlotManagerImpl(
 			slotMatchingStrategy,
@@ -81,6 +102,9 @@ public class SlotManagerBuilder {
 			taskManagerRequestTimeout,
 			slotRequestTimeout,
 			taskManagerTimeout,
-			waitResultConsumedBeforeRelease);
+			waitResultConsumedBeforeRelease,
+			minimumNumSlots,
+			maximumNumSlots,
+			waitForMinimumSlots);
 	}
 }
