@@ -37,14 +37,15 @@ public class RocksDBMemoryControllerUtils {
 	 * @param highPriorityPoolRatio The high priority pool ratio of cache.
 	 * @return memory controllable RocksDB shared resources.
 	 */
-	public static RocksDBSharedResources allocateRocksDBSharedResources(long totalMemorySize, double writeBufferRatio, double highPriorityPoolRatio) {
+	public static RocksDBSharedResources allocateRocksDBSharedResources(
+		long totalMemorySize, double writeBufferRatio, double highPriorityPoolRatio, boolean usingPartitionedIndex) {
 		long calculatedCacheCapacity = RocksDBMemoryControllerUtils.calculateActualCacheCapacity(totalMemorySize, writeBufferRatio);
 		final Cache cache = RocksDBMemoryControllerUtils.createCache(calculatedCacheCapacity, highPriorityPoolRatio);
 
 		long writeBufferManagerCapacity = RocksDBMemoryControllerUtils.calculateWriteBufferManagerCapacity(totalMemorySize, writeBufferRatio);
 		final WriteBufferManager wbm = RocksDBMemoryControllerUtils.createWriteBufferManager(writeBufferManagerCapacity, cache);
 
-		return new RocksDBSharedResources(cache, wbm, writeBufferManagerCapacity);
+		return new RocksDBSharedResources(cache, wbm, writeBufferManagerCapacity, usingPartitionedIndex);
 	}
 
 	/**

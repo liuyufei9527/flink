@@ -18,20 +18,27 @@
 
 package org.apache.flink.contrib.streaming.state;
 
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.runtime.memory.OpaqueMemoryResource;
 import org.apache.flink.util.IOUtils;
 import org.apache.flink.util.Preconditions;
 
 import org.rocksdb.BlockBasedTableConfig;
+import org.rocksdb.BloomFilter;
 import org.rocksdb.Cache;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
+import org.rocksdb.Filter;
+import org.rocksdb.IndexType;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.TableFormatConfig;
 import org.rocksdb.WriteOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -44,6 +51,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * and should be properly (and necessarily) closed to prevent resource leak.
  */
 public final class RocksDBResourceContainer implements AutoCloseable {
+	private static final Logger LOG = LoggerFactory.getLogger(RocksDBResourceContainer.class);
 
 	/** The pre-configured option settings. */
 	private final PredefinedOptions predefinedOptions;
@@ -143,6 +151,12 @@ public final class RocksDBResourceContainer implements AutoCloseable {
 					"We currently only support BlockBasedTableConfig When bounding total memory.");
 				blockBasedTableConfig = (BlockBasedTableConfig) tableFormatConfig;
 			}
+			if (rocksResources.isUsingPartitionedIndex()) {
+				blockBasedTableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
+				blockBasedTableConfig.setPartitionFilters(true);
+				blockBasedTableConfig.setPinTopLevelIndexAndFilter(true);
+				this.overwriteFilterIfExist(blockBasedTableConfig);
+			}
 			blockBasedTableConfig.setBlockCache(blockCache);
 			blockBasedTableConfig.setCacheIndexAndFilterBlocks(true);
 			blockBasedTableConfig.setCacheIndexAndFilterBlocksWithHighPriority(true);
@@ -207,6 +221,36 @@ public final class RocksDBResourceContainer implements AutoCloseable {
 
 		if (sharedResources != null) {
 			sharedResources.close();
+		}
+	}
+
+	/**
+	 * Overwrite configured {@link Filter} if enable partitioned filter.
+	 * Partitioned filter only worked in full bloom filter, not blocked based.
+	 */
+	private void overwriteFilterIfExist(BlockBasedTableConfig blockBasedTableConfig) {
+		Filter filter = getFilterFromBlockBasedTableConfig(blockBasedTableConfig);
+		if (filter != null) {
+			// TODO Can get filter's config in the future RocksDB version, and build new filter use existing config.
+			BloomFilter newFilter = new BloomFilter(10, false);
+			LOG.warn("Overwrite existing filter if '{}' is enabled.", RocksDBOptions.USE_PARTITIONED_INDEX_FILTERS);
+			blockBasedTableConfig.setFilter(newFilter);
+			handlesToClose.add(newFilter);
+			IOUtils.closeQuietly(filter);
+			handlesToClose.remove(filter);
+		}
+	}
+
+	@VisibleForTesting
+	protected static Filter getFilterFromBlockBasedTableConfig(BlockBasedTableConfig blockBasedTableConfig) {
+		try {
+			Field filterField = blockBasedTableConfig.getClass().getDeclaredField("filter_");
+			filterField.setAccessible(true);
+			Object filter = filterField.get(blockBasedTableConfig);
+			filterField.setAccessible(false);
+			return filter == null ? null : (Filter) filter;
+		} catch (IllegalAccessException | NoSuchFieldException e) {
+			return null;
 		}
 	}
 }

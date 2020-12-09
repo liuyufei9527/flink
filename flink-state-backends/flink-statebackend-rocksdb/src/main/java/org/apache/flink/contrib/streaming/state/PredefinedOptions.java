@@ -162,7 +162,7 @@ public enum PredefinedOptions {
 			final long targetFileSize = 256 * 1024 * 1024;
 			final long writeBufferSize = 64 * 1024 * 1024;
 
-			BloomFilter bloomFilter = new BloomFilter();
+			BloomFilter bloomFilter = new BloomFilter(10, false);
 			handlesToClose.add(bloomFilter);
 
 			return new ColumnFamilyOptions()

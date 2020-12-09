@@ -243,9 +243,10 @@ public class RocksDBOperationUtils {
 
 		final double highPriorityPoolRatio = memoryConfig.getHighPriorityPoolRatio();
 		final double writeBufferRatio = memoryConfig.getWriteBufferRatio();
+		final boolean usingPartitionedIndex = memoryConfig.isUsingPartitionedIndexFilters();
 
 		final LongFunctionWithException<RocksDBSharedResources, Exception> allocator = (size) ->
-			RocksDBMemoryControllerUtils.allocateRocksDBSharedResources(size, writeBufferRatio, highPriorityPoolRatio);
+			RocksDBMemoryControllerUtils.allocateRocksDBSharedResources(size, writeBufferRatio, highPriorityPoolRatio, usingPartitionedIndex);
 
 		try {
 			if (memoryConfig.isUsingFixedMemoryPerSlot()) {
