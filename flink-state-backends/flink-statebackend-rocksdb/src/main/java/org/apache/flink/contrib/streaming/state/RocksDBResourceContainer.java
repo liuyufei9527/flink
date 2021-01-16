@@ -151,7 +151,7 @@ public final class RocksDBResourceContainer implements AutoCloseable {
 					"We currently only support BlockBasedTableConfig When bounding total memory.");
 				blockBasedTableConfig = (BlockBasedTableConfig) tableFormatConfig;
 			}
-			if (rocksResources.isUsingPartitionedIndex()) {
+			if (rocksResources.isUsingPartitionedIndexFilters()) {
 				blockBasedTableConfig.setIndexType(IndexType.kTwoLevelIndexSearch);
 				blockBasedTableConfig.setPartitionFilters(true);
 				blockBasedTableConfig.setPinTopLevelIndexAndFilter(true);
@@ -242,7 +242,7 @@ public final class RocksDBResourceContainer implements AutoCloseable {
 	}
 
 	@VisibleForTesting
-	protected static Filter getFilterFromBlockBasedTableConfig(BlockBasedTableConfig blockBasedTableConfig) {
+	static Filter getFilterFromBlockBasedTableConfig(BlockBasedTableConfig blockBasedTableConfig) {
 		try {
 			Field filterField = blockBasedTableConfig.getClass().getDeclaredField("filter_");
 			filterField.setAccessible(true);

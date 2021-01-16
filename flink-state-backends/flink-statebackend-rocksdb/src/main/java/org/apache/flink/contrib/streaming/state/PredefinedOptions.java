@@ -162,6 +162,8 @@ public enum PredefinedOptions {
 			final long targetFileSize = 256 * 1024 * 1024;
 			final long writeBufferSize = 64 * 1024 * 1024;
 
+			/* Default use Full Filters (new format) instead of Block-based Bloom Filter, and bits_per_key=10.
+			* https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter */
 			BloomFilter bloomFilter = new BloomFilter(10, false);
 			handlesToClose.add(bloomFilter);
 

@@ -38,14 +38,14 @@ public class RocksDBMemoryControllerUtils {
 	 * @return memory controllable RocksDB shared resources.
 	 */
 	public static RocksDBSharedResources allocateRocksDBSharedResources(
-		long totalMemorySize, double writeBufferRatio, double highPriorityPoolRatio, boolean usingPartitionedIndex) {
+		long totalMemorySize, double writeBufferRatio, double highPriorityPoolRatio, boolean usingPartitionedIndexFilters) {
 		long calculatedCacheCapacity = RocksDBMemoryControllerUtils.calculateActualCacheCapacity(totalMemorySize, writeBufferRatio);
 		final Cache cache = RocksDBMemoryControllerUtils.createCache(calculatedCacheCapacity, highPriorityPoolRatio);
 
 		long writeBufferManagerCapacity = RocksDBMemoryControllerUtils.calculateWriteBufferManagerCapacity(totalMemorySize, writeBufferRatio);
 		final WriteBufferManager wbm = RocksDBMemoryControllerUtils.createWriteBufferManager(writeBufferManagerCapacity, cache);
 
-		return new RocksDBSharedResources(cache, wbm, writeBufferManagerCapacity, usingPartitionedIndex);
+		return new RocksDBSharedResources(cache, wbm, writeBufferManagerCapacity, usingPartitionedIndexFilters);
 	}
 
 	/**
