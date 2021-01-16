@@ -131,7 +131,7 @@ public class RocksDBConfigurableOptions implements Serializable {
 		key("state.backend.rocksdb.block.metadata-blocksize")
 			.memoryType()
 			.noDefaultValue()
-			.withDescription("Approximate size (in bytes) of partitioned metadata packed per block. " +
+			.withDescription("Approximate size of partitioned metadata packed per block. " +
 				"Currently applied to indexes block when partitioned index/filters option is enabled. " +
 				"RocksDB has default metadata blocksize as '4KB'.");
 
